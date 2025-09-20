@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 const converSchema = new mongoose.Schema({
-  sessionId: { type: String, required: true },
+  sessionId: { type: mongoose.Schema.Types.ObjectId, ref: 'Session', required: true },
   // role: { type: String, enum: ["user", "assistant"], required: true },
   message: { type: String, required: true },
   response: { type: String, required: true },
