@@ -21,5 +21,5 @@ export async function getAllHistory(userId) {
 }
 
 export async function getHistoryBySessionId(sessionId) {
-  return await Conversation.find({ sessionId }, { $sort: { createdAt: 1 } }).lean();
+  return await Session.find({ sessionId }, { $sort: { createdAt: 1 } }).lean();
 }
