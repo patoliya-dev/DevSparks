@@ -1,6 +1,6 @@
 import express from "express";
 import { saveMessage, getConversation } from "../services/memoryService.js";
-import { getLLMResponse } from "../models/llms.js"; // your friend's code
+import { formatSingleLine, getLLMResponse } from "../models/llms.js"; // your friend's code
 
 const chatRouter = express.Router();
 
@@ -9,18 +9,19 @@ chatRouter.post("/chat", async (req, res) => {
     const { sessionId, message } = req.body;
 
     // 1. Save user message
-    await saveMessage(sessionId, "user", message);
+    // await saveMessage(sessionId, "user", message);
 
     // 2. Fetch last 5 messages for context
-    const history = await getConversation(sessionId, 5);
+    // const history = await getConversation(sessionId, 5);
 
     // 3. Pass context + message to LLM
-    const response = await getLLMResponse(message, history);
-
+    const llmResponse = await getLLMResponse(message);
+    const formatedResponse = formatSingleLine(llmResponse);
+    console.log(res, "Response");
     // 4. Save assistant reply
-    await saveMessage(sessionId, "assistant", response);
+    await saveMessage(sessionId, message ,formatedResponse);
 
-    res.json({ response });
+    res.json({ formatedResponse });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
