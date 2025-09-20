@@ -5,6 +5,8 @@ const stt = require("./routes/sttRoutes.js");
 const { connectDbMain } = require("./config/connectDb.js");
 const { default: chatRouter } = require("./routes/chatRoutes.js");
 const { initModel } = require("./models/llms.js");
+const authRoutes = require('./routes/authRoutes.js')
+
 
 const app = express();
 
@@ -17,8 +19,11 @@ app.use(express.json());
 app.get("/", (req, res) => {
   res.send("hello");
 });
-app.use("/", stt);
-app.use("/", chatRouter);
+
+app.use('/', stt);
+app.use('/', chatRouter);
+app.use("/auth", authRoutes);
+
 // Connect to MongoDB and start server
 const connectDb = async () => {
   try {
