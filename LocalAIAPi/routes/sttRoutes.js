@@ -1,11 +1,11 @@
-import express from "express";
-import multer from "multer";
-import { transcribeAudio } from "../models/stt.js";
+const express = require("express");
+const multer = require("multer");
+const { transcribeAudio } = require("../models/stt.js");
 
-const router = express.Router();
+const stt = express.Router();
 const upload = multer({ dest: "uploads/" });
 
-router.post("/stt", upload.single("audio"), async (req, res) => {
+stt.post("/stt", upload.single("audio"), async (req, res) => {
   try {
     const text = await transcribeAudio(req.file.path);
     res.json({ text });
@@ -14,4 +14,4 @@ router.post("/stt", upload.single("audio"), async (req, res) => {
   }
 });
 
-export default router;
+module.exports = stt;
