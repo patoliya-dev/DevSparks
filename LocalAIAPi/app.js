@@ -1,11 +1,25 @@
-require('dotenv').config();
-const express = require('express');
+import dotenv from "dotenv";
+import express from "express";
+import router from "./routes/index.js";
+import mongoose from "mongoose";
+import { initModel } from "./config/llm.js";
 
 const app = express();
+dotenv.config();
+mongoose.connect(process.env.MONGODB_URI);
 
-app.listen(process.env.PORT, () => {
-    console.log(`port run in ${process.env.PORT} Port`);
+initModel();
+
+app.use(express.json());
+
+app.use("/api", router);
+
+app.get("/", (req, res) => {
+  return res.json({ message: "Hello World!" });
 });
 
+app.listen(process.env.PORT, () => {
+  console.log(`port run in ${process.env.PORT} Port`);
+});
 
-module.exports = app;
+export default app;
