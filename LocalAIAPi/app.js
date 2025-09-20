@@ -15,6 +15,7 @@ initModel();
 app.use(express.json());
 app.use(cors()); // enable CORS for all origins
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 // Routes
 app.get("/", (req, res) => {
   res.send("hello");
