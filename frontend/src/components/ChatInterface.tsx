@@ -43,6 +43,7 @@ interface ChatInterface {
 // Add these interfaces and props to your ChatInterface component
 const ChatInterface: React.FC = () => {
   const { user, logout } = useAuth();
+  console.log('user :>> ', user);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSpeechEnabled, setIsSpeechEnabled] = useState(true);
@@ -74,7 +75,7 @@ const ChatInterface: React.FC = () => {
   const lastVoiceDetectedRef = useRef<number>(0);
 
   // Your API endpoint - using local API for now
-  const API_ENDPOINT = '/api/';
+  const API_ENDPOINT = 'https://9e05948d440b.ngrok-free.app/';
 
   // Voice Activity Detection Settings - Made more sensitive
   const VOICE_THRESHOLD = 30; // Lower threshold for better sensitivity
@@ -157,15 +158,20 @@ const ChatInterface: React.FC = () => {
       
       const formData = new FormData();
       formData.append('audio', wavBlob, 'recording.wav');
-      formData.append('language', 'en');
-      formData.append('model', 'whisper');
+      formData.append('sessionId','');
+      formData.append('user',user?.id || 'guest');
+
+
 
       const response = await fetch(`${API_ENDPOINT}stt`, {
         method: 'POST',
         body: formData,
         headers: {
           'Accept': 'application/json',
+          'ngrok-skip-browser-warning': 'true',
+          'User-Agent': 'AITalker/1.0',
         },
+        mode: 'cors',
       });
 
       if (!response.ok) {
@@ -173,24 +179,42 @@ const ChatInterface: React.FC = () => {
         throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
 
-      const result = await response.json();
+      // Check if response is JSON or WAV file
+      const contentType = response.headers.get('content-type');
       
-      let transcription = '';
-      if (typeof result === 'string') {
-        transcription = result;
-      } else if (result.transcription) {
-        transcription = result.transcription;
-      } else if (result.text) {
-        transcription = result.text;
-      } else if (result.transcript) {
-        transcription = result.transcript;
-      } else if (result.data?.transcription) {
-        transcription = result.data.transcription;
-      } else if (result.response) {
-        transcription = result.response;
-      }
+      if (contentType && contentType.includes('application/json')) {
+        // Handle JSON response
+        const result = await response.json();
+        
+        let transcription = '';
+        if (typeof result === 'string') {
+          transcription = result;
+        } else if (result.transcription) {
+          transcription = result.transcription;
+        } else if (result.text) {
+          transcription = result.text;
+        } else if (result.transcript) {
+          transcription = result.transcript;
+        } else if (result.data?.transcription) {
+          transcription = result.data.transcription;
+        } else if (result.response) {
+          transcription = result.response;
+        }
 
-      return transcription || '';
+        return transcription || '';
+      } else if (contentType && contentType.includes('audio/wav')) {
+        // Handle WAV file response
+        const wavBlob = await response.blob();
+        console.log('Received WAV file from API:', wavBlob.size, 'bytes');
+        
+        // For now, return a placeholder message
+        // You can process the WAV file further if needed
+        return `Received WAV file (${wavBlob.size} bytes) from API`;
+      } else {
+        // Try to parse as text
+        const text = await response.text();
+        return text || 'No transcription received';
+      }
     } catch (error) {
       console.error('API transcription error:', error);
       if (error instanceof TypeError && error.message === 'Failed to fetch') {
