@@ -7,7 +7,7 @@ import {
   Volume2, 
   VolumeX, 
   Trash2, 
-  Settings,
+  Settings as SettingsIcon,
   History,
   Download,
   Upload,
@@ -15,8 +15,13 @@ import {
   MessageSquare,
   Bot,
   Cloud,
-  Square
+  Square,
+  LogOut,
+  User
 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import Settings from './Settings';
+import ThemeDebug from './ThemeDebug';
 
 interface Message {
   id: string;
@@ -32,14 +37,19 @@ interface ApiResponse {
   data?: unknown;
   error?: string;
 }
-
+interface ChatInterface {
+  user:any
+}
+// Add these interfaces and props to your ChatInterface component
 const ChatInterface: React.FC = () => {
+  const { user, logout } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSpeechEnabled, setIsSpeechEnabled] = useState(true);
   const [speaking, setSpeaking] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const [speechSynthesisSupported, setSpeechSynthesisSupported] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
   // Audio Recording States
   const [isRecording, setIsRecording] = useState(false);
@@ -63,8 +73,8 @@ const ChatInterface: React.FC = () => {
   const silenceStartTimeRef = useRef<number | null>(null);
   const lastVoiceDetectedRef = useRef<number>(0);
 
-  // Your ngrok API endpoint
-  const API_ENDPOINT = 'https://864ed28016de.ngrok-free.app/';
+  // Your API endpoint - using local API for now
+  const API_ENDPOINT = '/api/';
 
   // Voice Activity Detection Settings - Made more sensitive
   const VOICE_THRESHOLD = 30; // Lower threshold for better sensitivity
@@ -155,10 +165,7 @@ const ChatInterface: React.FC = () => {
         body: formData,
         headers: {
           'Accept': 'application/json',
-          'ngrok-skip-browser-warning': 'true',
-          'User-Agent': 'AITalker/1.0',
         },
-        mode: 'cors',
       });
 
       if (!response.ok) {
@@ -577,12 +584,25 @@ const ChatInterface: React.FC = () => {
   const sidebarOptions = [
     { icon: MessageSquare, label: 'New Conversation', action: clearChat },
     { icon: History, label: 'Chat History', action: () => console.log('Chat History') },
-    { icon: Settings, label: 'Settings', action: () => console.log('Settings') },
+    { icon: SettingsIcon, label: 'Settings', action: () => setIsSettingsOpen(true) },
     { icon: Download, label: 'Export Chat', action: () => console.log('Export') },
     { icon: Upload, label: 'Import Chat', action: () => console.log('Import') },
     { icon: HelpCircle, label: 'Help', action: () => console.log('Help') },
+    { icon: LogOut, label: 'Logout', action: logout },
   ];
 
+  useEffect(() => {
+    setIsClient(true);
+    setSpeechSynthesisSupported('speechSynthesis' in window);
+    
+    const welcomeMsg: Message = {
+      id: Date.now().toString(),
+      text: `Welcome back, ${user?.name ?? 'User'}! Click the microphone to start speaking. I'll automatically submit after 2 seconds of silence.`,
+      type: 'system',
+      timestamp: new Date()
+    };
+    setMessages([welcomeMsg]);
+  }, [user?.name]);
   if (!isClient) {
     return (
       <div className="flex h-screen bg-gray-100">
@@ -590,7 +610,7 @@ const ChatInterface: React.FC = () => {
           <div className="p-4 border-b">
             <div className="flex items-center space-x-2">
               <Bot className="h-8 w-8 text-blue-500" />
-              <h2 className="text-lg font-semibold text-gray-800">Voice AI Assistant</h2>
+              <h2 className="text-lg font-semibold text-gray-800 dark:text-white">Voice AI Assistant</h2>
             </div>
           </div>
           <div className="p-4">Loading...</div>
@@ -612,34 +632,56 @@ const ChatInterface: React.FC = () => {
   }
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="flex h-screen bg-gray-100 dark:bg-gray-900 transition-colors duration-300">
       {/* Sidebar */}
-      <div className="w-64 bg-white shadow-lg border-r flex flex-col">
-        <div className="p-4 border-b">
-          <div className="flex items-center space-x-2">
-            <Bot className="h-8 w-8 text-blue-500" />
-            <h2 className="text-lg font-semibold text-gray-800">Voice AI Assistant</h2>
+      <div className="w-64 bg-white dark:bg-gray-800 shadow-lg border-r border-gray-200 dark:border-gray-700 flex flex-col transition-colors duration-300">
+        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Bot className="h-8 w-8 text-blue-500" />
+              <h2 className="text-lg font-semibold text-gray-800 dark:text-white">Voice AI Assistant</h2>
+            </div>
+            <button
+              onClick={logout}
+              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              title="Logout"
+            >
+              <LogOut className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+            </button>
           </div>
+          
+          {/* User Info */}
+          {user && (
+            <div className="mt-3 flex items-center space-x-2 p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                <User className="w-4 h-4 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{user.name}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
+              </div>
+            </div>
+          )}
         </div>
         
         {/* Status Section */}
-        <div className="p-4 border-b">
-          <h3 className="text-sm font-medium text-gray-600 mb-3">Status</h3>
+        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+          <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-3">Status</h3>
           <div className="space-y-2">
             <div className="flex items-center space-x-2">
               <Cloud className="w-4 h-4 text-blue-600" />
-              <span className="text-sm text-blue-600 font-medium">API Transcription Ready</span>
+              <span className="text-sm text-blue-600 dark:text-blue-400 font-medium">API Transcription Ready</span>
             </div>
             <div className="flex items-center space-x-2">
               <div className={`w-3 h-3 rounded-full ${isSpeaking ? 'bg-green-500' : 'bg-gray-300'}`} />
-              <span className="text-sm text-gray-600">
+              <span className="text-sm text-gray-600 dark:text-gray-400">
                 {isSpeaking ? 'Voice Detected' : 'Listening for Voice'}
               </span>
             </div>
             {isRecording && (
               <div className="flex items-center space-x-2">
                 <div className="w-3 h-3 rounded-full bg-blue-500" />
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-gray-600 dark:text-gray-400">
                   Audio Level: {audioLevel}
                 </span>
               </div>
@@ -654,25 +696,25 @@ const ChatInterface: React.FC = () => {
               <button
                 key={index}
                 onClick={option.action}
-                className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 transition-colors text-left group"
+                className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-left group"
               >
-                <option.icon size={20} className="text-gray-600 group-hover:text-blue-600" />
-                <span className="text-gray-800 group-hover:text-blue-600">{option.label}</span>
+                <option.icon size={20} className="text-gray-600 dark:text-gray-400 group-hover:text-blue-600" />
+                <span className="text-gray-800 dark:text-gray-200 group-hover:text-blue-600">{option.label}</span>
               </button>
             ))}
           </div>
         </div>
         
         {/* Voice Settings */}
-        <div className="p-4 border-t">
-          <h3 className="text-sm font-medium text-gray-600 mb-3">Voice Settings</h3>
+        <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+          <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-3">Voice Settings</h3>
           <div className="space-y-2">
             <button
               onClick={toggleSpeech}
               className={`w-full flex items-center space-x-3 p-3 rounded-lg transition-colors ${
                 isSpeechEnabled 
-                  ? 'bg-blue-50 text-blue-700 border border-blue-200' 
-                  : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                  ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800' 
+                  : 'bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600'
               }`}
             >
               {isSpeechEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
@@ -681,7 +723,7 @@ const ChatInterface: React.FC = () => {
             
             <button
               onClick={clearChat}
-              className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-red-50 hover:text-red-700 transition-colors text-gray-600"
+              className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-700 dark:hover:text-red-400 transition-colors text-gray-600 dark:text-gray-400"
             >
               <Trash2 size={20} />
               <span>Clear Conversation</span>
@@ -693,29 +735,29 @@ const ChatInterface: React.FC = () => {
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <div className="bg-white shadow-sm p-4 border-b">
+        <div className="bg-white dark:bg-gray-800 shadow-sm p-4 border-b border-gray-200 dark:border-gray-700 transition-colors duration-300">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <h1 className="text-xl font-semibold text-gray-800">
+              <h1 className="text-xl font-semibold text-gray-800 dark:text-white">
                 Voice AI Assistant
               </h1>
               
               {isRecording && (
-                <div className="flex items-center space-x-1 px-3 py-1 rounded-full bg-red-100 text-red-700 text-xs">
+                <div className="flex items-center space-x-1 px-3 py-1 rounded-full bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400 text-xs">
                   <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
                   <span>RECORDING {formatTime(recordingTime)}</span>
                 </div>
               )}
 
               {isRecording && isSpeaking && (
-                <div className="flex items-center space-x-1 px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs">
+                <div className="flex items-center space-x-1 px-3 py-1 rounded-full bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-xs">
                   <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                   <span>SPEAKING (Level: {audioLevel})</span>
                 </div>
               )}
 
               {isRecording && !isSpeaking && silenceTimer > 0 && (
-                <div className="flex items-center space-x-1 px-3 py-1 rounded-full bg-orange-100 text-orange-700 text-xs">
+                <div className="flex items-center space-x-1 px-3 py-1 rounded-full bg-orange-100 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 text-xs">
                   <div className="w-2 h-2 rounded-full bg-orange-500" />
                   <span>SILENCE {formatSilenceTime(silenceTimer)} / 2.0s</span>
                 </div>
@@ -723,7 +765,7 @@ const ChatInterface: React.FC = () => {
             </div>
             
             <div className="flex items-center space-x-2">
-              <div className="flex items-center space-x-1 px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-700">
+              <div className="flex items-center space-x-1 px-2 py-1 rounded-full text-xs bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400">
                 <Cloud className="w-3 h-3" />
                 <span>Auto-Submit (2s silence)</span>
               </div>
@@ -732,17 +774,17 @@ const ChatInterface: React.FC = () => {
         </div>
 
         {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto p-4 pb-32">
+        <div className="flex-1 overflow-y-auto p-4 pb-50 bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
           {messages.length <= 1 && (
-            <div className="text-center text-gray-500 mt-16">
-              <Bot className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+            <div className="text-center text-gray-500 dark:text-gray-400 mt-16">
+              <Bot className="h-16 w-16 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
               <p className="text-xl font-medium mb-2">
                 Voice AI Assistant Ready!
               </p>
               <p className="text-sm mb-2">
                 Click the microphone to start speaking
               </p>
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-gray-400 dark:text-gray-500">
                 {`I'll automatically submit after 2 seconds of silence`}
               </p>
             </div>
@@ -759,8 +801,8 @@ const ChatInterface: React.FC = () => {
                     message.type === 'user'
                       ? 'bg-blue-500 text-white rounded-br-sm'
                       : message.type === 'ai'
-                      ? 'bg-white text-gray-800 border rounded-bl-sm shadow-sm'
-                      : 'bg-yellow-100 text-yellow-700 border border-yellow-300'
+                      ? 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-700 rounded-bl-sm shadow-sm'
+                      : 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 border border-yellow-300 dark:border-yellow-800'
                   }`}
                 >
                   <p className="text-sm leading-relaxed">{message.text}</p>
@@ -781,12 +823,12 @@ const ChatInterface: React.FC = () => {
 
             {isLoading && (
               <div className="flex justify-start">
-                <div className="bg-white text-gray-800 border max-w-xs lg:max-w-md px-4 py-3 rounded-2xl rounded-bl-sm shadow-sm">
+                <div className="bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-700 max-w-xs lg:max-w-md px-4 py-3 rounded-2xl rounded-bl-sm shadow-sm">
                   <div className="flex items-center space-x-2">
                     <div className="animate-pulse flex space-x-1">
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-75"></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-150"></div>
+                      <div className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce delay-75"></div>
+                      <div className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce delay-150"></div>
                     </div>
                     <span className="text-sm">AI is thinking...</span>
                   </div>
@@ -798,8 +840,8 @@ const ChatInterface: React.FC = () => {
         </div>
 
         {/* Voice Controls */}
-        <div className="fixed bottom-0 left-64 right-0 bg-white border-t  z-20" style={{padding:'calc(var(--spacing) * 7.2)'}}>
-          <div className="flex justify-center items-center space-x-6">:
+        <div className="fixed bottom-0 left-64 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-20 transition-colors duration-300" style={{padding:'calc(var(--spacing) * 7.2)'}}>
+          <div className="flex justify-center items-center space-x-6">
             <button
               onClick={isRecording ? stopRecording : startRecording}
               disabled={isLoading}
@@ -848,19 +890,30 @@ const ChatInterface: React.FC = () => {
           </div>
 
           <div className="mt-4 text-center">
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
               {isRecording 
                 ? isSpeaking
                   ? 'Keep speaking or pause for 2 seconds to auto-submit'
                   : silenceTimer > 0
                     ? 'Auto-submitting soon...'
                     : 'Waiting for speech...'
-                : 'Click microphone to start. Auto-submits after 2 seconds of silence'
+                : 'Click microphone to start'
               }
             </p>
           </div>
         </div>
       </div>
+
+      {/* Settings Modal */}
+      <Settings
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        isSpeechEnabled={isSpeechEnabled}
+        onToggleSpeech={toggleSpeech}
+      />
+
+      {/* Theme Debug - Remove this in production */}
+      <ThemeDebug />
     </div>
   );
 };
