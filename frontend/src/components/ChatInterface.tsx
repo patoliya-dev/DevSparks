@@ -224,6 +224,8 @@ const ChatInterface: React.FC = () => {
     }
   };
 
+  
+
   // FIXED: Improved Voice Activity Detection
   const checkVoiceActivity = useCallback(() => {
     if (!analyserRef.current || !isRecording) return;
