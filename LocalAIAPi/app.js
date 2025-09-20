@@ -18,7 +18,7 @@ app.get("/", (req, res) => {
 });
 app.use('/', stt);
 app.use('/', chatRouter);
-app.use("/api/auth", authRoutes);
+app.use("/auth", authRoutes);
 
 // Connect to MongoDB and start server
 const connectDb = async () => {
