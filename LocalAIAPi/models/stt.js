@@ -15,7 +15,15 @@ const transcribeAudio = (audioPath) => {
       const resultFile = audioPath.replace(/\.[^/.]+$/, "") + ".txt";
       fs.readFile(resultFile, "utf8", (readErr, data) => {
         if (readErr) reject(readErr);
-        else resolve(data.trim());
+        fs.unlink(audioPath, (delErr) => {
+          if (delErr) console.error("Failed to delete audio file:", delErr);
+        });
+
+        fs.unlink(resultFile, (delErr) => {
+          if (delErr) console.error("Failed to delete transcription file:", delErr);
+        });
+
+        resolve(data.trim());
       });
     });
   });
