@@ -1,13 +1,13 @@
 import express from "express";
-import { saveMessage, getConversation } from "../services/memoryService.js";
+import {
+  saveMessage,
+} from "../services/memoryService.js";
 import { formatSingleLine, getLLMResponse } from "../models/llms.js"; // your friend's code
 
 const chatRouter = express.Router();
 
 chatRouter.post("/chat", async (req, res) => {
   try {
-    const { sessionId, message } = req.body;
-
     // 1. Save user message
     // await saveMessage(sessionId, "user", message);
 
@@ -19,7 +19,7 @@ chatRouter.post("/chat", async (req, res) => {
     const formatedResponse = formatSingleLine(llmResponse);
     console.log(res, "Response");
     // 4. Save assistant reply
-    await saveMessage(sessionId, message ,formatedResponse);
+    await saveMessage(sessionId, message, formatedResponse);
 
     res.json({ formatedResponse });
   } catch (error) {
@@ -28,4 +28,3 @@ chatRouter.post("/chat", async (req, res) => {
 });
 
 export default chatRouter;
-
