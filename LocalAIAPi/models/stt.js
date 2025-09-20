@@ -4,8 +4,8 @@ const { exec } = require("child_process");
 const path = require("path");
 const fs = require("fs");
 
-const WHISPER_PATH = path.resolve("./whisper.cpp/whisper-cli");
-const MODEL_PATH = path.resolve("whisper.cpp/models/ggml-base.en.bin");
+const WHISPER_PATH = path.resolve("../../whisper.cpp/whisper-cli");
+const MODEL_PATH = path.resolve("../../whisper.cpp/models/ggml-base.bin");
 
 const transcribeAudio = (audioPath) => {
   return new Promise((resolve, reject) => {
